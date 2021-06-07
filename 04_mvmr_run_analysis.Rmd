@@ -58,7 +58,6 @@ adult_bmi_gwas_file <- data_lookup %>% filter(trait == "Adult body size") %>% pu
 adult_bmi_gwas <- vroom(paste0(data_path_gwas, adult_bmi_gwas_file))
 dim(adult_bmi_gwas) 
 
-
 ```
 
 
@@ -135,7 +134,7 @@ results_path_sub <-   paste0(results_path, current_trait_category, "/")
 run_analysis_1 = T
 run_analysis_2 = F
 run_analysis_3 = F
-
+run_analysis_3 = F
 
 for (i in 1:length(mediators)){
   

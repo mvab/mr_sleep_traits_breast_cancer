@@ -18,7 +18,7 @@ currently_working_env = "local"
 source("set_paths.R")
 set_paths(currently_working_env)
 
-# metadata file that is itiratelely read in and updated
+# metadata file that is iteratively read in and updated
 data_lookup_file <- paste0("metadata/data_lookup.csv")
 data_lookup<-read_csv(data_lookup_file)
 
@@ -102,7 +102,7 @@ for (current_trait in traits) {
   vroom_write(gwas_outcome_format, paste0(data_path_gwas, data_name, tidy_gwas ))
   
   print("Extracting tophits")
-  #gwas_outcome_format<-vroom(paste0(data_path_gwas, data_name, tidy_gwas )) # if need to run from here
+  #gwas_outcome_format<-vroom(paste0(data_path_gwas, data_name, tidy_gwas )) # uncomment if need to run from here
   tophits <- extract_tophits(gwas_outcome_format)
   if (!exists("tophits")) { stop("Extarcting instruments failed!")}
   print(paste0("Found ", dim(tophits)[1], " SNPs at < 5e-8"))
