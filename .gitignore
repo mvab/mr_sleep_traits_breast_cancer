@@ -1,0 +1,44 @@
+# General
+set_paths.R
+figures/
+
+
+ .DS_Store
+.DS_Store
+/.DS_Store
+scripts/select_traits/.DS_Store
+.AppleDouble
+.LSOverride
+.Rproj.user/
+.Rhistory
+# Icon must end with two \r
+Icon
+# Project
+MRreport_cache/
+MRreport_files/
+# python 
+venv
+.idea
+/.idea
+# Thumbnails
+._*
+*.log
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+# project specific
+mrbase.oauth
+.html
+*.html
+ieugwasr_oauth

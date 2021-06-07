@@ -1,0 +1,5 @@
+trait,trait_category,original_file,full_data,tophits_data,trait_file_name,source,format,mrbase.id
+Childhood body size,bmi,BMI_10_adj_month_f_imputed.txt.gz,early_bmi_adj_GWAS_tidy_outcome.txt.gz,early_bmi_adj_tophits.tsv,early_bmi_adj,ieu_gwas_pipeline,tsv,NA
+Adult body size,bmi,BMI_adult_female.txt.gz,adult_bmi_GWAS_tidy_outcome.txt.gz,adult_bmi_tophits.tsv,adult_bmi,ieu_gwas_pipeline,tsv,NA
+Chronotype,sleep_traits,chronotype_female_raw_BOLT.output_HRC.only_plus.metrics_maf0.001_hwep1em12_info0.3.txt.gz,chronotype_GWAS_tidy_outcome.txt.gz,chronotype_tophits.tsv,chronotype,ieu_gwas_pipeline_v2,tsv,NA
+Age at menarche (UKB),reproductive_traits,NA,NA,NA,age_at_menarche_ukb,NA,mrbase,ukb-b-3768

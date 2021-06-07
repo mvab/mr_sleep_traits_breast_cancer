@@ -1,0 +1,195 @@
+---
+title: "Univariate MR of mediators to BC"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(data.table)
+library(vroom)
+
+library(tidyr)
+library(purrr)
+library(tibble)
+library(dplyr)
+
+library(TwoSampleMR)
+library(ggplot2)
+library(cowplot)
+library(wesanderson)
+```
+
+```{r message=F}
+# set path for pre-calculated data, outside the code repo
+# `local` / `remote` (reading data from RDSF)
+currently_working_env = "local"
+source("set_paths.R")
+set_paths(currently_working_env)
+
+# metafile
+data_lookup<-read_csv(paste0("metadata/data_lookup.csv")) 
+
+# load functions
+source("functions.R")
+
+# breast cancer dataset
+# 1126 full, 1127 ER+, 1128 ER-
+breast_cancer_id <- "ieu-a-1126" 
+bc_data <- stringr::str_split(breast_cancer_id, "-")[[1]][3]
+```
+
+
+```{r}
+# specify group to process if data is in textfiles
+source = "textfiles"
+current_trait_category <- "sleep_traits"
+mediators <- data_lookup %>% filter(trait_category == current_trait_category) %>% filter(!is.na(full_data)) %>%  pull(tophits_data)
+
+# specify group to process  if the data is in MRBase
+#source = "mrbase"
+#current_trait_category <- ".."
+#mediators <- data_lookup %>% filter(trait_category == current_trait_category) %>% filter(!is.na(mrbase.id)) %>%  pull(mrbase.id)
+
+```
+## Reading in / extracting instruments
+```{r}
+if (source == "textfiles"){
+  
+    data_list <- lapply(paste0(data_path_tophits, mediators), fread)
+    
+} else if (source == "mrbase"){
+
+  data_list <- list()
+  for (i in 1:length(mediators)){
+    instruments <- extract_instruments(mediators[i])
+    if (is.null(instruments)){ stop(paste0("No instruments found for ", mediators[i]))} # if no SNPs returned
+    data_list[[i]] <- clump_data(instruments)
+    data_list[[i]]$exposure <- data_lookup %>% filter(mrbase.id==mediators[i]) %>% pull(trait)
+  }
+}
+```
+
+
+##  Extracting outcomes
+
+```{r message=F, warning=F}
+# load studies from MR base
+extract_outcome_data_custom <- function(exposure_dat){
+  out <- extract_outcome_data(
+            snps = exposure_dat$SNP,
+            outcome = breast_cancer_id,
+            proxies = TRUE,
+            rsq = 0.8, maf_threshold = 0.3) 
+  return(out)
+}
+outcomes <- lapply(data_list, extract_outcome_data_custom)
+
+# check how many SNPs are present in the outcome
+for (i in 1:length(data_list)){
+  print(unique(data_list[[i]]$exposure))
+  print(paste0("SNPs in exposure: ", dim(data_list[[i]])[1]))
+  print(paste0("SNPs matches outcome: ", dim(outcomes[[i]])[1]))
+}
+
+# Harmonise each exposure to the matched outcome SNPs
+harmonise_l <- list()
+for (i in 1:length(data_list)){
+   harmonise_l[[i]] <- harmonise_data(exposure_dat = data_list[[i]], 
+                                      outcome_dat = outcomes[[i]])
+}
+
+# Pleiotropy and Heterogeneity
+sensitivity_l <- list()
+for (i in 1:length(harmonise_l)){
+  # don't try it one 1-SNP cases
+  if (dim(harmonise_l[[i]])[1] != 1){
+  sensitivity_l[[i]] <- full_join(
+                        mr_pleiotropy_test(harmonise_l[[i]]),
+                        mr_heterogeneity(harmonise_l[[i]], method_list=c("mr_egger_regression", "mr_ivw"))
+                        )
+  }
+}   
+  
+# perform MR
+mr_l <- list()
+for (i in 1:length(harmonise_l)){
+  mr_l[[i]] <- mr(harmonise_l[[i]],  method_list=c('mr_ivw','mr_egger_regression','mr_weighted_median', 'mr_wald_ratio') ) 
+}
+
+
+## Tidy up results 
+#  - Split outcome names
+#  - Generate odds ratios with 95% confidence intervals
+  
+tidy_result_l <- list()
+for (i in 1:length(mr_l)){
+  tidy_result_l[[i]] <- mr_l[[i]] %>%
+                        split_outcome() %>% 
+                        split_exposure() %>% 
+                        separate(outcome, "outcome", sep="[(]") %>% 
+                        generate_odds_ratios()
+}
+
+dat <- tidy_result_l %>%
+      reduce(rbind) %>% 
+      arrange(method) %>% 
+      select(-c("id.exposure")) 
+
+# save full data from MR analyses
+ind_res_dir <- paste0(results_path, current_trait_category, "/")
+ind_res_dir_w_backslash <- gsub(" ", "\\ ", ind_res_dir, fixed=T) # create path vector escaping spaces, otherwise sytem call cant process it
+if(!dir.exists(ind_res_dir)){ system(paste("mkdir -p", ind_res_dir))}
+
+write_tsv(dat, paste0(ind_res_dir,"merged_mr_mediators_", current_trait_category,"-to-BCAC_", bc_data,".tsv"))
+
+
+dat_sensitivity <- sensitivity_l %>%
+      reduce(rbind) %>% 
+      split_outcome() %>%
+      separate(outcome, "outcome", sep="[(]") %>% 
+      select(-c("id.exposure", "id.outcome")) 
+
+# save sensitivity analyses results
+write_tsv(dat_sensitivity, paste0(ind_res_dir,"merged_sens_mr_mediators_", current_trait_category,"-to-BCAC_", bc_data,".tsv"))
+```
+
+
+# Next section is different plotting setups for each category
+
+
+## glycemic_traits 
+
+```{r message=F}
+current_trait_category <- "sleep_traits"
+dat <- read_tsv(paste0(results_path, current_trait_category, "/","merged_mr_mediators_", 
+                       current_trait_category,"-to-BCAC_", bc_data,".tsv")) %>% 
+  filter(method %in% c("Inverse variance weighted", "Wald ratio"))
+
+dat %>% kable_it()
+
+# rearrange to be in the required order
+dat<-arrange(dat, exposure) %>% mutate(exposure=as.factor(exposure))
+dat$exposure <- forcats::fct_inorder(dat$exposure) %>% forcats::fct_rev() 
+
+pal<-rev(c(unname(yarrr::piratepal("pony"))))
+p<-ggplot(dat, aes(y=exposure, x=or, label=outcome, colour=exposure, shape=method)) +
+  geom_errorbarh(aes(xmin=or_lci95, xmax=or_uci95), height=.3) +
+  geom_point(size=2)+
+  scale_color_manual(values=pal)+
+  scale_shape_manual(values = c(19,20)) +
+  geom_vline(xintercept=1, linetype='longdash') +
+  theme_minimal_hgrid(10, rel_small = 1) +
+  facet_wrap(~outcome, ncol=1)+
+  labs(color = "",y = "", x = "Odds ratio",
+       title= paste0("Univariate MR results for ", gsub("_", " ",current_trait_category) ,", 95% CI") )+
+  theme(legend.position = "none", plot.title.position  = "plot")
+
+ggsave(paste0("figures/mediators_",current_trait_category ,"-to_BCAC_", bc_data,"_IVW.png"),
+       plot=p, #scale=1, 
+       width=10, height=5,
+       units=c("cm"), dpi=200, limitsize=F)
+
+```
+
+
