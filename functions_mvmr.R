@@ -88,7 +88,7 @@ make_mvmr_input <- function(exposure_dat, outcome.id.mrbase="", outcome.data="")
                                         outcomes = outcome.id.mrbase)
   } else if (outcome.data != ""){
     # if outcome df is provided
-    outcome_dat <- outcome.data %>% filter(SNP %in% exposures_joined_auto$SNP)
+    outcome_dat <- outcome.data %>% filter(SNP %in% exposure_dat$SNP)
   }
   
   # harmonize datasets
