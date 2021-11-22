@@ -75,6 +75,7 @@ get_mv_exposures <- function(exposure_list, full_gwas_list, clump_exposures=FALS
 # it is used to generate equivant of `exposures_joined` from manual steps, but here
 # it is called `exposures_joined_auto`
 
+
 #  function to convert 2SMR format into MVMR format
 make_mvmr_input <- function(exposure_dat, outcome.id.mrbase="", outcome.data=""){
   # provide exposure_dat created in the same way as for TwoSampleMR 
@@ -95,24 +96,30 @@ make_mvmr_input <- function(exposure_dat, outcome.id.mrbase="", outcome.data="")
   exposure_dat <- exposure_dat %>% mutate(id.exposure = exposure)
   outcome_harmonised <- mv_harmonise_data(exposure_dat, outcome_dat)
   
+  exposures_order <- colnames(outcome_harmonised$exposure_beta)
   
-  # Create variables for the analysis
-  XGs <- data.frame(betaX1 = outcome_harmonised$exposure_beta[,1],
-                    betaX2 = outcome_harmonised$exposure_beta[,2],
-                    seX1 = outcome_harmonised$exposure_se[,1],
-                    seX2 = outcome_harmonised$exposure_se[,2]) %>% 
-    rownames_to_column('SNP')
+  # Create variables for the analysis 
+  
+  ### works for many exposures
+  no_exp = dim(outcome_harmonised$exposure_beta)[2] # count exposures
+  # add beta/se names
+  colnames(outcome_harmonised$exposure_beta) <- paste0("betaX", 1:no_exp)
+  colnames(outcome_harmonised$exposure_se) <- paste0("seX", 1:no_exp)
+  
+  XGs <-left_join(as.data.frame(outcome_harmonised$exposure_beta) %>% rownames_to_column('SNP'), 
+                  as.data.frame(outcome_harmonised$exposure_se)   %>%rownames_to_column('SNP'), 
+                  by = "SNP")
   
   YG <- data.frame(beta.outcome = outcome_harmonised$outcome_beta,
                    se.outcome = outcome_harmonised$outcome_se) %>% 
-    rownames_to_column('SNP')
+    mutate(SNP = XGs$SNP)
   
-  exposures_order <- colnames(outcome_harmonised$exposure_beta)
   
   return(list(YG = YG,
               XGs = XGs,
               exposures = exposures_order))
 }
+
 
 
 
