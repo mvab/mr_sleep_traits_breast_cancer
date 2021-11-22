@@ -19,7 +19,7 @@ Main analysis scripts and metadata (see details below):
 ├── 03_mr_mediators_to_BC.Rmd
 ├── 04_mvmr_run_analysis.Rmd
 ├── 05_mvmr_create_plots.Rmd * not added yet
-├── 06_mediation_analysis.Rmd  * not added yet
+├── 06_mediation_analysis.Rmd  
 ├── functions.R
 ├── functions_mvmr.R
 ├── metadata
