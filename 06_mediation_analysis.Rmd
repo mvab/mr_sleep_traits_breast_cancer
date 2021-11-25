@@ -215,7 +215,7 @@ for (mediator in mediators_df$trait_file_name){
   current_trait_category <- mediators_df %>% filter(trait_file_name == mediator) %>% pull(trait_category)
   
   # results from step 1
-  bmi_mediator <- read_tsv(paste0(results_path, current_trait_category, "/MR_BMI-to-chronotype.tsv")) %>%
+  bmi_mediator <- read_tsv(paste0(results_path, current_trait_category, "/MR_BMI-to-",mediator,".tsv")) %>%
                   filter(outcome == mediator_name, 
                          exposure == "Childhood body size",
                          method == 'Inverse variance weighted')
